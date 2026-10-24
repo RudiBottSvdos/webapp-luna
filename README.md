@@ -63,7 +63,7 @@ Der Stack besteht aus `caddy` (80/443), `backend` und `speaches` (nur intern err
 
 ### Sprachausgabe mit Pocket TTS
 
-Mit `TTS_ENGINE=pocket` in `.env` übernimmt der Dienst `pocket-tts` ([Kyutai Pocket TTS](https://huggingface.co/kyutai/pocket-tts), CPU) die Sprachausgabe statt Piper. Sprache und Stimme stehen in `POCKET_TTS_LANGUAGE` und `POCKET_TTS_VOICE`; nach einer Änderung `docker compose up -d pocket-tts`. Das Modell wird beim ersten Start heruntergeladen (Volume `pocket_hf`) und braucht etwa 1,7 GB RAM. Ausgabe ist WAV.
+Mit `TTS_ENGINE=pocket` in `.env` übernimmt der Dienst `pocket-tts` ([Kyutai Pocket TTS](https://huggingface.co/kyutai/pocket-tts), CPU) die Sprachausgabe statt Piper. Der Dienst gehört zum Compose-Profil `pocket` und startet nur damit: `docker compose --profile pocket up -d`. Sprache und Stimme stehen in `POCKET_TTS_LANGUAGE` und `POCKET_TTS_VOICE`. Das Modell wird beim ersten Start heruntergeladen (Volume `pocket_hf`) und braucht etwa 1,7 GB RAM. Ausgabe ist WAV.
 
 ### Sprachausgabe mit ElevenLabs
 
