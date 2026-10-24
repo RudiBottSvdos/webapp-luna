@@ -1,0 +1,61 @@
+services:
+  caddy:
+    build:
+      context: .
+      dockerfile: caddy/Dockerfile
+      args:
+        CADDY_DNS_PLUGIN: ${CADDY_DNS_PLUGIN:-github.com/caddy-dns/cloudflare}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      LUNA_DOMAIN: ${LUNA_DOMAIN}
+      CADDY_DNS_PROVIDER: ${CADDY_DNS_PROVIDER:-cloudflare}
+      CADDY_DNS_API_TOKEN: ${CADDY_DNS_API_TOKEN}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+      SPEACHES_URL: http://speaches:8000
+      PORT: "3000"
+    volumes:
+      - backend_data:/data
+    expose:
+      - "3000"
+    depends_on:
+      - speaches
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  speaches:
+    image: ghcr.io/speaches-ai/speaches:latest-cpu
+    restart: unless-stopped
+    volumes:
+      - hf_cache:/home/ubuntu/.cache/huggingface/hub
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  caddy_data:
+  caddy_config:
+  backend_data:
+  hf_cache:

@@ -1,0 +1,48 @@
+{$LUNA_DOMAIN} {
+	# HTTPS per DNS-Challenge (kein Port muss ins Internet geöffnet werden).
+	# {$CADDY_DNS_PROVIDER} ist der Modulname des Plugins (z. B. cloudflare, hetzner, ionos, duckdns).
+	# Andere Anbieter: Plugin per Build-Arg CADDY_DNS_PLUGIN wählen und hier die
+	# Optionen des Plugins eintragen, z. B. bei Cloudflare "api_token <token>" statt
+	# des generischen Tokens. Das generische Muster "dns <provider> <token>" passt
+	# für Plugins mit einem einzelnen Token; sonst siehe README des jeweiligen caddy-dns-Moduls.
+	tls {
+		dns {$CADDY_DNS_PROVIDER} {$CADDY_DNS_API_TOKEN}
+	}
+
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "microphone=(self), camera=(), geolocation=()"
+		Content-Security-Policy "default-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'"
+		-Server
+	}
+
+	# API -> Backend; flush_interval -1 für Server-Sent Events
+	handle /api/* {
+		reverse_proxy backend:3000 {
+			flush_interval -1
+			transport http {
+				read_timeout 5m
+				response_header_timeout 5m
+			}
+		}
+	}
+
+	# Frontend (SPA)
+	handle {
+		root * /srv
+
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+
+		@nocache path / /index.html /sw.js /service-worker.js /registerSW.js /manifest.webmanifest /workbox-*.js
+		header @nocache Cache-Control "no-cache"
+
+		try_files {path} /index.html
+		file_server
+	}
+}
