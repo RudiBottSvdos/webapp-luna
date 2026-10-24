@@ -41,6 +41,9 @@ const AUDIO_TYPES: Record<string, string> = {
   pcm: 'audio/L16',
 };
 
+// Maximale Länge des ersten Sprech-Stücks einer Antwort (Zeichen).
+const FIRST_CHUNK = 45;
+
 const sha = (t: string) => createHash('sha256').update(t).digest();
 function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(sha(a), sha(b));
@@ -216,8 +219,11 @@ export async function buildApp(config: Config, deps: AppDeps): Promise<FastifyIn
       let completed = false;
       const emit = (parts: string[]) => {
         for (const p of parts) {
-          // Lange Sätze in kürzere Sprech-Stücke teilen: das erste erklingt früher.
-          for (const chunk of chunkForSpeech(cleanForSpeech(p))) send('sentence', { index: index++, text: chunk });
+          // Lange Sätze in kürzere Sprech-Stücke teilen; das allererste besonders kurz,
+          // damit die Stimme möglichst bald nach dem ersten Text einsetzt.
+          const clean = cleanForSpeech(p);
+          const chunks = index === 0 ? chunkForSpeech(clean, FIRST_CHUNK) : chunkForSpeech(clean);
+          for (const chunk of chunks) send('sentence', { index: index++, text: chunk });
         }
       };
 
