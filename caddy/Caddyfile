@@ -46,3 +46,7 @@
 		file_server
 	}
 }
+
+# Weitere, installationsspezifische Seiten (z. B. Hermes WebUI) als caddy/sites/*.caddy.
+# Die Dateien sind nicht im Repo (.gitignore) und werden per Volume eingebunden.
+import sites/*.caddy

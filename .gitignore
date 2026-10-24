@@ -12,3 +12,6 @@ Thumbs.db
 .vite/
 *.tsbuildinfo
 graphify-out/cache/
+
+# Installationsspezifische Caddy-Seiten
+caddy/sites/*.caddy
