@@ -8,7 +8,9 @@ import { z } from 'zod';
 import type { Config } from './config.js';
 import type { DeviceStore } from './devices.js';
 import { parseHermesEvents } from './hermes/sse.js';
+import { chunkForSpeech } from './speech/chunks.js';
 import { cleanForSpeech } from './speech/clean.js';
+import { speakNumbers } from './speech/numbers.js';
 import { SentenceSplitter } from './speech/sentences.js';
 import { fixWavSizes } from './speech/wav.js';
 
@@ -214,8 +216,8 @@ export async function buildApp(config: Config, deps: AppDeps): Promise<FastifyIn
       let completed = false;
       const emit = (parts: string[]) => {
         for (const p of parts) {
-          const clean = cleanForSpeech(p);
-          if (clean) send('sentence', { index: index++, text: clean });
+          // Lange Sätze in kürzere Sprech-Stücke teilen: das erste erklingt früher.
+          for (const chunk of chunkForSpeech(cleanForSpeech(p))) send('sentence', { index: index++, text: chunk });
         }
       };
 
@@ -254,13 +256,14 @@ export async function buildApp(config: Config, deps: AppDeps): Promise<FastifyIn
     reply.raw.on('close', () => {
       if (!reply.raw.writableEnded) ac.abort();
     });
+    const text = speakNumbers(body.data.text); // Pocket TTS spricht keine Ziffern
     try {
       if (config.ttsEngine === 'pocket') {
         // Pocket TTS: Stimme und Sprache sind im Pocket-Dienst konfiguriert, Antwort ist WAV.
         const audio = await inPocketOrder(async () => {
           if (ac.signal.aborted) return null; // Wiedergabe wurde abgebrochen, während der Satz wartete
           const form = new FormData();
-          form.append('text', body.data.text);
+          form.append('text', text);
           const res = await doFetch(`${config.pocketTtsUrl}/tts`, { method: 'POST', body: form, signal: ac.signal });
           if (!res.ok || !res.body) {
             req.log.error({ status: res.status, engine: 'pocket' }, 'TTS fehlgeschlagen');
@@ -280,7 +283,7 @@ export async function buildApp(config: Config, deps: AppDeps): Promise<FastifyIn
         body: JSON.stringify({
           model: config.ttsModel,
           voice: config.ttsVoice,
-          input: body.data.text,
+          input: text,
           response_format: config.ttsFormat,
         }),
         signal: ac.signal,

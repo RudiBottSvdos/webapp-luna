@@ -246,6 +246,14 @@ describe('TTS und Transkription', () => {
     expect((fetchMock.mock.calls[1]![1].body as FormData).get('text')).toBe('Zwei');
   });
 
+  it('schreibt Zahlen vor der Sprachausgabe aus', async () => {
+    await setup();
+    const cookie = await pair();
+    fetchMock.mockResolvedValueOnce(new Response(new Uint8Array([1]), { status: 200 }));
+    await app.inject({ method: 'POST', url: '/api/tts', headers: { cookie }, payload: { text: 'Es sind 18 °C um 7:30 Uhr.' } });
+    expect(JSON.parse(fetchMock.mock.calls[0]![1].body).input).toBe('Es sind achtzehn Grad um sieben Uhr dreißig.');
+  });
+
   it('begrenzt TTS-Text auf 1000 Zeichen', async () => {
     await setup();
     const cookie = await pair();
