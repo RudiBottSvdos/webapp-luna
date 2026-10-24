@@ -61,6 +61,10 @@ docker compose up -d --build
 
 Der Stack besteht aus `caddy` (80/443), `backend` und `speaches` (nur intern erreichbar). Caddy wird mit dem DNS-Plugin aus `CADDY_DNS_PLUGIN` gebaut (Standard: Cloudflare). Für einen anderen Anbieter `CADDY_DNS_PLUGIN` und `CADDY_DNS_PROVIDER` in `.env` anpassen (ggf. Optionen im `Caddyfile`, siehe Kommentar dort).
 
+### Sprachausgabe mit Pocket TTS
+
+Mit `TTS_ENGINE=pocket` in `.env` übernimmt der Dienst `pocket-tts` ([Kyutai Pocket TTS](https://huggingface.co/kyutai/pocket-tts), CPU) die Sprachausgabe statt Piper. Sprache und Stimme stehen in `POCKET_TTS_LANGUAGE` und `POCKET_TTS_VOICE`; nach einer Änderung `docker compose up -d pocket-tts`. Das Modell wird beim ersten Start heruntergeladen (Volume `pocket_hf`) und braucht etwa 1,7 GB RAM. Ausgabe ist WAV.
+
 ### speaches: Modelle laden
 
 speaches lädt Modelle nicht von selbst. Einmalig nach dem ersten Start (Container-intern, da der Port nicht veröffentlicht ist):

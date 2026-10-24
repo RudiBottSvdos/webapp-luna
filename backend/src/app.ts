@@ -243,30 +243,41 @@ export async function buildApp(config: Config, deps: AppDeps): Promise<FastifyIn
     reply.raw.on('close', () => {
       if (!reply.raw.writableEnded) ac.abort();
     });
+    const pocket = config.ttsEngine === 'pocket';
     try {
-      const res = await doFetch(`${config.speachesUrl}/v1/audio/speech`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: config.ttsModel,
-          voice: config.ttsVoice,
-          input: body.data.text,
-          response_format: config.ttsFormat,
-        }),
-        signal: ac.signal,
-      });
+      let res: Response;
+      if (pocket) {
+        // Pocket TTS: Stimme und Sprache sind im Pocket-Dienst konfiguriert, Antwort ist WAV.
+        const form = new FormData();
+        form.append('text', body.data.text);
+        res = await doFetch(`${config.pocketTtsUrl}/tts`, { method: 'POST', body: form, signal: ac.signal });
+      } else {
+        res = await doFetch(`${config.speachesUrl}/v1/audio/speech`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: config.ttsModel,
+            voice: config.ttsVoice,
+            input: body.data.text,
+            response_format: config.ttsFormat,
+          }),
+          signal: ac.signal,
+        });
+      }
       if (!res.ok || !res.body) {
-        req.log.error({ status: res.status }, 'speaches TTS fehlgeschlagen');
+        req.log.error({ status: res.status, engine: config.ttsEngine }, 'TTS fehlgeschlagen');
         return reply.code(502).send({ error: 'tts_failed' });
       }
-      const type = AUDIO_TYPES[config.ttsFormat] ?? res.headers.get('content-type') ?? 'application/octet-stream';
+      const type = pocket
+        ? 'audio/wav'
+        : (AUDIO_TYPES[config.ttsFormat] ?? res.headers.get('content-type') ?? 'application/octet-stream');
       return reply
         .header('Cache-Control', 'no-store')
         .type(type)
         .send(Readable.fromWeb(res.body as any));
     } catch (e) {
       if (ac.signal.aborted) return reply;
-      req.log.error({ err: e }, 'speaches TTS nicht erreichbar');
+      req.log.error({ err: e, engine: config.ttsEngine }, 'TTS nicht erreichbar');
       return reply.code(502).send({ error: 'tts_failed' });
     }
   });

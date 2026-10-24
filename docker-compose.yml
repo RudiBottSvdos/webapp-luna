@@ -33,6 +33,7 @@ services:
       - "3000"
     depends_on:
       - speaches
+      - pocket-tts
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
       interval: 30s
@@ -40,8 +41,19 @@ services:
       retries: 3
       start_period: 10s
 
+  pocket-tts:
+    build: ./pocket-tts
+    restart: unless-stopped
+    environment:
+      POCKET_TTS_LANGUAGE: ${POCKET_TTS_LANGUAGE:-german_24l}
+      POCKET_TTS_VOICE: ${POCKET_TTS_VOICE:-vera}
+    volumes:
+      - pocket_hf:/hf
+    expose:
+      - "8000"
+
   speaches:
-    image: ghcr.io/speaches-ai/speaches:latest-cpu
+    image: ghcr.io/speaches-ai/speaches:0.8.3-cpu
     restart: unless-stopped
     volumes:
       - hf_cache:/home/ubuntu/.cache/huggingface/hub
@@ -59,3 +71,4 @@ volumes:
   caddy_config:
   backend_data:
   hf_cache:
+  pocket_hf:

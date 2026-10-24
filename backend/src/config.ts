@@ -11,6 +11,9 @@ const schema = z.object({
   // Piper-Modelle in speaches haben i. d. R. genau eine Stimme; "thorsten" ist der Sprecher.
   TTS_VOICE: z.string().min(1).default('thorsten'),
   TTS_FORMAT: z.enum(['mp3', 'wav', 'opus', 'flac', 'aac', 'pcm']).default('mp3'),
+  // Sprachausgabe: 'speaches' (Piper über speaches) oder 'pocket' (Kyutai Pocket TTS, liefert WAV).
+  TTS_ENGINE: z.enum(['speaches', 'pocket']).default('speaches'),
+  POCKET_TTS_URL: z.string().url().default('http://pocket-tts:8000'),
   PAIRING_PIN: z.string().min(4),
   COOKIE_SECRET: z.string().min(16),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
@@ -27,6 +30,8 @@ export type Config = {
   ttsModel: string;
   ttsVoice: string;
   ttsFormat: 'mp3' | 'wav' | 'opus' | 'flac' | 'aac' | 'pcm';
+  ttsEngine: 'speaches' | 'pocket';
+  pocketTtsUrl: string;
   pairingPin: string;
   cookieSecret: string;
   port: number;
@@ -54,6 +59,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     ttsModel: e.TTS_MODEL,
     ttsVoice: e.TTS_VOICE,
     ttsFormat: e.TTS_FORMAT,
+    ttsEngine: e.TTS_ENGINE,
+    pocketTtsUrl: strip(e.POCKET_TTS_URL),
     pairingPin: e.PAIRING_PIN,
     cookieSecret: e.COOKIE_SECRET,
     port: e.PORT,

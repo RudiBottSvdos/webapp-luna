@@ -205,6 +205,23 @@ describe('TTS und Transkription', () => {
     });
   });
 
+  it('leitet TTS an Pocket TTS weiter, wenn TTS_ENGINE=pocket', async () => {
+    const config = loadConfig({ ...env(dir), TTS_ENGINE: 'pocket', POCKET_TTS_URL: 'http://pocket-tts:8000/' });
+    const store = new DeviceStore(dir);
+    await store.load();
+    app = await buildApp(config, { store, fetch: fetchMock as unknown as typeof fetch });
+    const cookie = await pair();
+    fetchMock.mockResolvedValueOnce(new Response(new Uint8Array([4, 5, 6]), { status: 200 }));
+    const res = await app.inject({ method: 'POST', url: '/api/tts', headers: { cookie }, payload: { text: 'Hallo' } });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toBe('audio/wav');
+    expect([...res.rawPayload]).toEqual([4, 5, 6]);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('http://pocket-tts:8000/tts');
+    expect(init.body).toBeInstanceOf(FormData);
+    expect((init.body as FormData).get('text')).toBe('Hallo');
+  });
+
   it('begrenzt TTS-Text auf 1000 Zeichen', async () => {
     await setup();
     const cookie = await pair();
