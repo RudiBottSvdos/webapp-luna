@@ -7,4 +7,4 @@ ENV HF_HOME=/hf
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=180s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8000/health\")" || exit 1
-ENTRYPOINT ["sh", "-c", "exec pocket-tts serve --host 0.0.0.0 --port 8000 --language \"${POCKET_TTS_LANGUAGE:-german_24l}\" --default-voice \"${POCKET_TTS_VOICE:-vera}\""]
+ENTRYPOINT ["sh", "-c", "exec pocket-tts serve --host 0.0.0.0 --port 8000 --language \"${POCKET_TTS_LANGUAGE:-german_24l}\" --default-voice \"${POCKET_TTS_VOICE:-vera}\" $( [ \"$POCKET_TTS_QUANTIZE\" = true ] && echo --quantize )"]

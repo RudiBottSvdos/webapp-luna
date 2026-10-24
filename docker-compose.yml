@@ -47,6 +47,7 @@ services:
     environment:
       POCKET_TTS_LANGUAGE: ${POCKET_TTS_LANGUAGE:-german_24l}
       POCKET_TTS_VOICE: ${POCKET_TTS_VOICE:-vera}
+      POCKET_TTS_QUANTIZE: ${POCKET_TTS_QUANTIZE:-false}
     volumes:
       - pocket_hf:/hf
     expose:

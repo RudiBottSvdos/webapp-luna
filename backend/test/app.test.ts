@@ -222,6 +222,30 @@ describe('TTS und Transkription', () => {
     expect((init.body as FormData).get('text')).toBe('Hallo');
   });
 
+  it('schickt Pocket-TTS-Anfragen nacheinander in Eingangsreihenfolge', async () => {
+    const config = loadConfig({ ...env(dir), TTS_ENGINE: 'pocket' });
+    const store = new DeviceStore(dir);
+    await store.load();
+    app = await buildApp(config, { store, fetch: fetchMock as unknown as typeof fetch });
+    const cookie = await pair();
+    let releaseFirst!: () => void;
+    fetchMock
+      .mockImplementationOnce(
+        () => new Promise<Response>((r) => (releaseFirst = () => r(new Response(new Uint8Array([1]), { status: 200 })))),
+      )
+      .mockResolvedValueOnce(new Response(new Uint8Array([2]), { status: 200 }));
+    const first = app.inject({ method: 'POST', url: '/api/tts', headers: { cookie }, payload: { text: 'Eins' } });
+    const second = app.inject({ method: 'POST', url: '/api/tts', headers: { cookie }, payload: { text: 'Zwei' } });
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(fetchMock).toHaveBeenCalledTimes(1); // zweiter Satz wartet auf den ersten
+    releaseFirst();
+    const [r1, r2] = await Promise.all([first, second]);
+    expect([...r1.rawPayload]).toEqual([1]);
+    expect([...r2.rawPayload]).toEqual([2]);
+    expect((fetchMock.mock.calls[1]![1].body as FormData).get('text')).toBe('Zwei');
+  });
+
   it('begrenzt TTS-Text auf 1000 Zeichen', async () => {
     await setup();
     const cookie = await pair();

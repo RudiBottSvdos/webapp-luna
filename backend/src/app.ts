@@ -47,6 +47,16 @@ function safeEqual(a: string, b: string): boolean {
 export async function buildApp(config: Config, deps: AppDeps): Promise<FastifyInstance> {
   const doFetch = deps.fetch ?? fetch;
   const heartbeatMs = deps.heartbeatMs ?? 15_000;
+
+  // Pocket TTS rechnet parallele Anfragen gleichzeitig auf denselben CPU-Kernen; dann ist
+  // der erste Satz erst fertig, wenn fast alle fertig sind. Deshalb strikt nacheinander
+  // in Eingangsreihenfolge, damit der erste Satz so früh wie möglich vorgelesen wird.
+  let pocketChain: Promise<unknown> = Promise.resolve();
+  const inPocketOrder = <T>(job: () => Promise<T>): Promise<T> => {
+    const run = pocketChain.then(job, job);
+    pocketChain = run.catch(() => undefined);
+    return run;
+  };
   const app = Fastify({
     logger: deps.logger ?? false,
     trustProxy: true, // hinter Caddy: echte Client-IP fürs Rate-Limit
@@ -244,39 +254,42 @@ export async function buildApp(config: Config, deps: AppDeps): Promise<FastifyIn
     reply.raw.on('close', () => {
       if (!reply.raw.writableEnded) ac.abort();
     });
-    const pocket = config.ttsEngine === 'pocket';
     try {
-      let res: Response;
-      if (pocket) {
+      if (config.ttsEngine === 'pocket') {
         // Pocket TTS: Stimme und Sprache sind im Pocket-Dienst konfiguriert, Antwort ist WAV.
-        const form = new FormData();
-        form.append('text', body.data.text);
-        res = await doFetch(`${config.pocketTtsUrl}/tts`, { method: 'POST', body: form, signal: ac.signal });
-      } else {
-        res = await doFetch(`${config.speachesUrl}/v1/audio/speech`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: config.ttsModel,
-            voice: config.ttsVoice,
-            input: body.data.text,
-            response_format: config.ttsFormat,
-          }),
-          signal: ac.signal,
+        const audio = await inPocketOrder(async () => {
+          if (ac.signal.aborted) return null; // Wiedergabe wurde abgebrochen, während der Satz wartete
+          const form = new FormData();
+          form.append('text', body.data.text);
+          const res = await doFetch(`${config.pocketTtsUrl}/tts`, { method: 'POST', body: form, signal: ac.signal });
+          if (!res.ok || !res.body) {
+            req.log.error({ status: res.status, engine: 'pocket' }, 'TTS fehlgeschlagen');
+            return 'failed' as const;
+          }
+          // Ganz puffern, um die Längen im WAV-Header zu korrigieren (ein Satz = wenige hundert KB).
+          return fixWavSizes(Buffer.from(await res.arrayBuffer()));
         });
+        if (audio === null) return reply;
+        if (audio === 'failed') return reply.code(502).send({ error: 'tts_failed' });
+        return reply.header('Cache-Control', 'no-store').type('audio/wav').send(audio);
       }
+
+      const res = await doFetch(`${config.speachesUrl}/v1/audio/speech`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: config.ttsModel,
+          voice: config.ttsVoice,
+          input: body.data.text,
+          response_format: config.ttsFormat,
+        }),
+        signal: ac.signal,
+      });
       if (!res.ok || !res.body) {
-        req.log.error({ status: res.status, engine: config.ttsEngine }, 'TTS fehlgeschlagen');
+        req.log.error({ status: res.status, engine: 'speaches' }, 'TTS fehlgeschlagen');
         return reply.code(502).send({ error: 'tts_failed' });
       }
-      const type = pocket
-        ? 'audio/wav'
-        : (AUDIO_TYPES[config.ttsFormat] ?? res.headers.get('content-type') ?? 'application/octet-stream');
-      if (pocket) {
-        // Ganz puffern, um die Längen im WAV-Header zu korrigieren (ein Satz = wenige hundert KB).
-        const audio = fixWavSizes(Buffer.from(await res.arrayBuffer()));
-        return reply.header('Cache-Control', 'no-store').type(type).send(audio);
-      }
+      const type = AUDIO_TYPES[config.ttsFormat] ?? res.headers.get('content-type') ?? 'application/octet-stream';
       return reply
         .header('Cache-Control', 'no-store')
         .type(type)
