@@ -66,6 +66,8 @@ export function useLuna() {
     queue.current = new PlaybackQueue<Response>({
       fetchClip: (text, signal) => api.tts(text, signal),
       player: player.current,
+      // Der Server erzeugt Sprache Stück für Stück; so kommt der erste Satz zuerst dran.
+      sequentialFetch: true,
       onActiveChange: setSpeaking,
       onError: (e) => {
         if (e instanceof api.UnauthorizedError) handleUnauthorized();

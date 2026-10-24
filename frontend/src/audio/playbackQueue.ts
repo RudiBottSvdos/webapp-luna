@@ -9,6 +9,11 @@ export interface PlaybackQueueOptions<C = Blob> {
   player: ClipPlayer<C>;
   onActiveChange?: (active: boolean) => void;
   onError?: (error: unknown) => void;
+  /**
+   * Request the next clip only after the previous request has been answered. Keeps the
+   * server-side order equal to the sentence order when the server works one clip at a time.
+   */
+  sequentialFetch?: boolean;
 }
 
 /**
@@ -20,6 +25,7 @@ export class PlaybackQueue<C = Blob> {
   private running = false;
   private generation = 0;
   private controller = new AbortController();
+  private lastFetch: Promise<unknown> = Promise.resolve();
 
   constructor(private readonly opts: PlaybackQueueOptions<C>) {}
 
@@ -30,8 +36,10 @@ export class PlaybackQueue<C = Blob> {
   enqueue(text: string): void {
     if (!text.trim()) return;
     const signal = this.controller.signal;
-    const clip = this.opts
-      .fetchClip(text, signal)
+    const fetchClip = () => this.opts.fetchClip(text, signal);
+    const started = this.opts.sequentialFetch ? this.lastFetch.then(fetchClip, fetchClip) : fetchClip();
+    this.lastFetch = started.catch(() => undefined);
+    const clip = started
       .then<C | null>((b) => b)
       .catch((e: unknown) => {
         if (!signal.aborted) this.opts.onError?.(e);
@@ -45,6 +53,7 @@ export class PlaybackQueue<C = Blob> {
     this.generation++;
     this.controller.abort();
     this.controller = new AbortController();
+    this.lastFetch = Promise.resolve();
     this.items = [];
     this.opts.player.stop();
     this.setRunning(false);

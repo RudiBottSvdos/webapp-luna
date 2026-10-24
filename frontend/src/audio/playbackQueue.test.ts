@@ -99,6 +99,28 @@ describe("PlaybackQueue", () => {
     expect(s.errors).toHaveLength(1);
   });
 
+  it("with sequentialFetch requests the next clip only after the previous one answered", async () => {
+    const calls: string[] = [];
+    const pending = new Map<string, ReturnType<typeof deferred<Blob>>>();
+    const q = new PlaybackQueue({
+      fetchClip: (text) => {
+        calls.push(text);
+        const d = deferred<Blob>();
+        pending.set(text, d);
+        return d.promise;
+      },
+      player: { play: async () => undefined, stop: () => undefined },
+      sequentialFetch: true,
+    });
+    q.enqueue("a");
+    q.enqueue("b");
+    await tick();
+    expect(calls).toEqual(["a"]);
+    pending.get("a")!.resolve(new Blob(["A"]));
+    await tick();
+    expect(calls).toEqual(["a", "b"]);
+  });
+
   it("ignores blank sentences", () => {
     const s = setup();
     s.q.enqueue("   ");
