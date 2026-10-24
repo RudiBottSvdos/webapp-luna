@@ -222,10 +222,12 @@ export async function buildApp(config: Config, deps: AppDeps): Promise<FastifyIn
       let completed = false;
       const emit = (parts: string[]) => {
         for (const p of parts) {
-          // Lange Sätze in kürzere Sprech-Stücke teilen; das allererste besonders kurz,
-          // damit die Stimme möglichst bald nach dem ersten Text einsetzt.
+          // Nur für das langsame Pocket TTS: lange Sätze in kürzere Sprech-Stücke teilen, das
+          // allererste besonders kurz. Schnelle Engines bekommen ganze Sätze (bessere Betonung).
           const clean = cleanForSpeech(p);
-          const chunks = index === 0 ? chunkForSpeech(clean, FIRST_CHUNK) : chunkForSpeech(clean);
+          if (!clean) continue;
+          const chunks =
+            config.ttsEngine !== 'pocket' ? [clean] : index === 0 ? chunkForSpeech(clean, FIRST_CHUNK) : chunkForSpeech(clean);
           for (const chunk of chunks) send('sentence', { index: index++, text: chunk });
         }
       };
