@@ -1,12 +1,12 @@
-export interface ClipPlayer {
+export interface ClipPlayer<C = Blob> {
   /** Resolves when the clip has finished (or was stopped). */
-  play(clip: Blob): Promise<void>;
+  play(clip: C): Promise<void>;
   stop(): void;
 }
 
-export interface PlaybackQueueOptions {
-  fetchClip: (text: string, signal: AbortSignal) => Promise<Blob>;
-  player: ClipPlayer;
+export interface PlaybackQueueOptions<C = Blob> {
+  fetchClip: (text: string, signal: AbortSignal) => Promise<C>;
+  player: ClipPlayer<C>;
   onActiveChange?: (active: boolean) => void;
   onError?: (error: unknown) => void;
 }
@@ -15,13 +15,13 @@ export interface PlaybackQueueOptions {
  * Plays TTS clips strictly in enqueue order. Clips are fetched immediately on enqueue
  * (so the next one is ready while the current one plays) but never played out of order.
  */
-export class PlaybackQueue {
-  private items: Promise<Blob | null>[] = [];
+export class PlaybackQueue<C = Blob> {
+  private items: Promise<C | null>[] = [];
   private running = false;
   private generation = 0;
   private controller = new AbortController();
 
-  constructor(private readonly opts: PlaybackQueueOptions) {}
+  constructor(private readonly opts: PlaybackQueueOptions<C>) {}
 
   get active(): boolean {
     return this.running;
@@ -32,7 +32,7 @@ export class PlaybackQueue {
     const signal = this.controller.signal;
     const clip = this.opts
       .fetchClip(text, signal)
-      .then<Blob | null>((b) => b)
+      .then<C | null>((b) => b)
       .catch((e: unknown) => {
         if (!signal.aborted) this.opts.onError?.(e);
         return null;

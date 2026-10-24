@@ -58,8 +58,9 @@ export async function transcribe(blob: Blob, signal?: AbortSignal): Promise<stri
   return (json.text ?? "").trim();
 }
 
-export async function tts(text: string, signal?: AbortSignal): Promise<Blob> {
-  const res = check(
+/** Startet die Sprachausgabe; der Body wird gestreamt (WAV von Pocket TTS oder mp3 von speaches). */
+export async function tts(text: string, signal?: AbortSignal): Promise<Response> {
+  return check(
     await request("/api/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -67,7 +68,6 @@ export async function tts(text: string, signal?: AbortSignal): Promise<Blob> {
       signal,
     }),
   );
-  return res.blob();
 }
 
 export type ChatEvent =

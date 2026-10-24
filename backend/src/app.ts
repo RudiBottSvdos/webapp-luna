@@ -12,7 +12,6 @@ import { chunkForSpeech } from './speech/chunks.js';
 import { cleanForSpeech } from './speech/clean.js';
 import { speakNumbers } from './speech/numbers.js';
 import { SentenceSplitter } from './speech/sentences.js';
-import { fixWavSizes } from './speech/wav.js';
 
 export interface AppDeps {
   store: DeviceStore;
@@ -265,21 +264,33 @@ export async function buildApp(config: Config, deps: AppDeps): Promise<FastifyIn
     const text = speakNumbers(body.data.text); // Pocket TTS spricht keine Ziffern
     try {
       if (config.ttsEngine === 'pocket') {
-        // Pocket TTS: Stimme und Sprache sind im Pocket-Dienst konfiguriert, Antwort ist WAV.
-        const audio = await inPocketOrder(async () => {
-          if (ac.signal.aborted) return null; // Wiedergabe wurde abgebrochen, während der Satz wartete
-          const form = new FormData();
-          form.append('text', text);
-          const res = await doFetch(`${config.pocketTtsUrl}/tts`, { method: 'POST', body: form, signal: ac.signal });
-          if (!res.ok || !res.body) {
-            req.log.error({ status: res.status, engine: 'pocket' }, 'TTS fehlgeschlagen');
-            return 'failed' as const;
-          }
-          // Ganz puffern, um die Längen im WAV-Header zu korrigieren (ein Satz = wenige hundert KB).
-          return fixWavSizes(Buffer.from(await res.arrayBuffer()));
+        // Pocket TTS streamt WAV schneller als Echtzeit; durchreichen, damit das Frontend
+        // schon während der Erzeugung abspielt. Stimme und Sprache stehen im Pocket-Dienst.
+        // Die Reihenfolge-Sperre bleibt gehalten, bis dieses Stück fertig übertragen ist.
+        let release!: () => void;
+        const transferred = new Promise<void>((r) => (release = r));
+        const res = await new Promise<Response | null>((resolve, reject) => {
+          void inPocketOrder(async () => {
+            if (ac.signal.aborted) return resolve(null); // Wiedergabe abgebrochen, während das Stück wartete
+            const form = new FormData();
+            form.append('text', text);
+            try {
+              resolve(await doFetch(`${config.pocketTtsUrl}/tts`, { method: 'POST', body: form, signal: ac.signal }));
+            } catch (e) {
+              return reject(e);
+            }
+            await transferred;
+          });
         });
-        if (audio === null) return reply;
-        if (audio === 'failed') return reply.code(502).send({ error: 'tts_failed' });
+        if (!res) return reply;
+        if (!res.ok || !res.body) {
+          release();
+          req.log.error({ status: res.status, engine: 'pocket' }, 'TTS fehlgeschlagen');
+          return reply.code(502).send({ error: 'tts_failed' });
+        }
+        const audio = Readable.fromWeb(res.body as any);
+        audio.once('close', release);
+        reply.raw.once('close', release);
         return reply.header('Cache-Control', 'no-store').type('audio/wav').send(audio);
       }
 

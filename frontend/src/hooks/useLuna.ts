@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as api from "../api/client";
-import { HtmlAudioPlayer } from "../audio/htmlAudioPlayer";
 import { PlaybackQueue } from "../audio/playbackQueue";
 import { MicDeniedError, MicUnavailableError, Recorder } from "../audio/recorder";
+import { WebAudioPlayer } from "../audio/webAudioPlayer";
 
 export interface Message {
   id: number;
@@ -50,7 +50,7 @@ export function useLuna() {
   const transcribeAbort = useRef<AbortController | null>(null);
   const runToken = useRef(0);
   const recorder = useRef(new Recorder());
-  const player = useRef(new HtmlAudioPlayer());
+  const player = useRef(new WebAudioPlayer());
   const press = useRef({ active: false, at: 0, releasedAsHold: false, starting: false, startCancelled: false });
   const maxTimer = useRef<number | null>(null);
 
@@ -61,9 +61,9 @@ export function useLuna() {
 
   const handleUnauthorized = useCallback(() => setSession("unpaired"), []);
 
-  const queue = useRef<PlaybackQueue | null>(null);
+  const queue = useRef<PlaybackQueue<Response> | null>(null);
   if (!queue.current) {
-    queue.current = new PlaybackQueue({
+    queue.current = new PlaybackQueue<Response>({
       fetchClip: (text, signal) => api.tts(text, signal),
       player: player.current,
       onActiveChange: setSpeaking,
