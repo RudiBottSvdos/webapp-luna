@@ -10,6 +10,7 @@ import type { DeviceStore } from './devices.js';
 import { parseHermesEvents } from './hermes/sse.js';
 import { cleanForSpeech } from './speech/clean.js';
 import { SentenceSplitter } from './speech/sentences.js';
+import { fixWavSizes } from './speech/wav.js';
 
 export interface AppDeps {
   store: DeviceStore;
@@ -271,6 +272,11 @@ export async function buildApp(config: Config, deps: AppDeps): Promise<FastifyIn
       const type = pocket
         ? 'audio/wav'
         : (AUDIO_TYPES[config.ttsFormat] ?? res.headers.get('content-type') ?? 'application/octet-stream');
+      if (pocket) {
+        // Ganz puffern, um die Längen im WAV-Header zu korrigieren (ein Satz = wenige hundert KB).
+        const audio = fixWavSizes(Buffer.from(await res.arrayBuffer()));
+        return reply.header('Cache-Control', 'no-store').type(type).send(audio);
+      }
       return reply
         .header('Cache-Control', 'no-store')
         .type(type)
