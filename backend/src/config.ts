@@ -12,8 +12,13 @@ const schema = z.object({
   TTS_VOICE: z.string().min(1).default('thorsten'),
   TTS_FORMAT: z.enum(['mp3', 'wav', 'opus', 'flac', 'aac', 'pcm']).default('mp3'),
   // Sprachausgabe: 'speaches' (Piper über speaches) oder 'pocket' (Kyutai Pocket TTS, liefert WAV).
-  TTS_ENGINE: z.enum(['speaches', 'pocket']).default('speaches'),
+  TTS_ENGINE: z.enum(['speaches', 'pocket', 'elevenlabs']).default('speaches'),
   POCKET_TTS_URL: z.string().url().default('http://pocket-tts:8000'),
+  // ElevenLabs (Cloud): nur nötig bei TTS_ENGINE=elevenlabs
+  ELEVENLABS_API_KEY: z.string().optional(),
+  ELEVENLABS_VOICE_ID: z.string().optional(),
+  ELEVENLABS_MODEL: z.string().min(1).default('eleven_flash_v2_5'),
+  ELEVENLABS_URL: z.string().url().default('https://api.elevenlabs.io'),
   PAIRING_PIN: z.string().min(4),
   COOKIE_SECRET: z.string().min(16),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
@@ -30,8 +35,9 @@ export type Config = {
   ttsModel: string;
   ttsVoice: string;
   ttsFormat: 'mp3' | 'wav' | 'opus' | 'flac' | 'aac' | 'pcm';
-  ttsEngine: 'speaches' | 'pocket';
+  ttsEngine: 'speaches' | 'pocket' | 'elevenlabs';
   pocketTtsUrl: string;
+  elevenlabs: { apiKey: string; voiceId: string; model: string; url: string } | null;
   pairingPin: string;
   cookieSecret: string;
   port: number;
@@ -49,6 +55,9 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     throw new Error(`Ungültige Konfiguration: ${msg}`);
   }
   const e = r.data;
+  if (e.TTS_ENGINE === 'elevenlabs' && (!e.ELEVENLABS_API_KEY || !e.ELEVENLABS_VOICE_ID)) {
+    throw new Error('Ungültige Konfiguration: TTS_ENGINE=elevenlabs braucht ELEVENLABS_API_KEY und ELEVENLABS_VOICE_ID');
+  }
   return {
     hermesUrl: strip(e.HERMES_URL),
     hermesApiKey: e.HERMES_API_KEY,
@@ -61,6 +70,10 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     ttsFormat: e.TTS_FORMAT,
     ttsEngine: e.TTS_ENGINE,
     pocketTtsUrl: strip(e.POCKET_TTS_URL),
+    elevenlabs:
+      e.ELEVENLABS_API_KEY && e.ELEVENLABS_VOICE_ID
+        ? { apiKey: e.ELEVENLABS_API_KEY, voiceId: e.ELEVENLABS_VOICE_ID, model: e.ELEVENLABS_MODEL, url: strip(e.ELEVENLABS_URL) }
+        : null,
     pairingPin: e.PAIRING_PIN,
     cookieSecret: e.COOKIE_SECRET,
     port: e.PORT,

@@ -254,6 +254,30 @@ describe('TTS und Transkription', () => {
     expect(JSON.parse(fetchMock.mock.calls[0]![1].body).input).toBe('Es sind achtzehn Grad um sieben Uhr dreißig.');
   });
 
+  it('streamt ElevenLabs-PCM mit WAV-Header, wenn TTS_ENGINE=elevenlabs', async () => {
+    const config = loadConfig({ ...env(dir), TTS_ENGINE: 'elevenlabs', ELEVENLABS_API_KEY: 'el-key', ELEVENLABS_VOICE_ID: 'voice1' });
+    const store = new DeviceStore(dir);
+    await store.load();
+    app = await buildApp(config, { store, fetch: fetchMock as unknown as typeof fetch });
+    const cookie = await pair();
+    fetchMock.mockResolvedValueOnce(new Response(new Uint8Array([7, 8, 9, 10]), { status: 200 }));
+    const res = await app.inject({ method: 'POST', url: '/api/tts', headers: { cookie }, payload: { text: 'Es ist 7 Uhr.' } });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toBe('audio/wav');
+    const body = res.rawPayload;
+    expect(body.subarray(0, 4).toString('ascii')).toBe('RIFF');
+    expect(body.readUInt32LE(24)).toBe(24000);
+    expect([...body.subarray(44)]).toEqual([7, 8, 9, 10]);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('https://api.elevenlabs.io/v1/text-to-speech/voice1/stream?output_format=pcm_24000');
+    expect(init.headers['xi-api-key']).toBe('el-key');
+    expect(JSON.parse(init.body)).toEqual({ text: 'Es ist sieben Uhr.', model_id: 'eleven_flash_v2_5', language_code: 'de' });
+  });
+
+  it('verlangt Schlüssel und Stimme für ElevenLabs', () => {
+    expect(() => loadConfig({ ...env(dir), TTS_ENGINE: 'elevenlabs' })).toThrow(/ELEVENLABS_API_KEY/);
+  });
+
   it('begrenzt TTS-Text auf 1000 Zeichen', async () => {
     await setup();
     const cookie = await pair();

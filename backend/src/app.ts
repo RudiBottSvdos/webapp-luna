@@ -11,6 +11,7 @@ import { parseHermesEvents } from './hermes/sse.js';
 import { chunkForSpeech } from './speech/chunks.js';
 import { cleanForSpeech } from './speech/clean.js';
 import { speakNumbers } from './speech/numbers.js';
+import { wavStreamHeader } from './speech/wav.js';
 import { SentenceSplitter } from './speech/sentences.js';
 
 export interface AppDeps {
@@ -39,6 +40,9 @@ const AUDIO_TYPES: Record<string, string> = {
   aac: 'audio/aac',
   pcm: 'audio/L16',
 };
+
+// Abtastrate für ElevenLabs-PCM (pcm_24000 ist in allen Tarifen verfügbar).
+const ELEVENLABS_RATE = 24_000;
 
 // Maximale Länge des ersten Sprech-Stücks einer Antwort (Zeichen).
 const FIRST_CHUNK = 45;
@@ -291,6 +295,34 @@ export async function buildApp(config: Config, deps: AppDeps): Promise<FastifyIn
         const audio = Readable.fromWeb(res.body as any);
         audio.once('close', release);
         reply.raw.once('close', release);
+        return reply.header('Cache-Control', 'no-store').type('audio/wav').send(audio);
+      }
+
+      if (config.ttsEngine === 'elevenlabs' && config.elevenlabs) {
+        // ElevenLabs liefert rohes 16-Bit-PCM (24 kHz, mono); mit WAV-Header davor kann das
+        // Frontend es wie Pocket TTS schon während des Empfangs abspielen.
+        const el = config.elevenlabs;
+        const res = await doFetch(
+          `${el.url}/v1/text-to-speech/${encodeURIComponent(el.voiceId)}/stream?output_format=pcm_${ELEVENLABS_RATE}`,
+          {
+            method: 'POST',
+            headers: { 'xi-api-key': el.apiKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, model_id: el.model, language_code: 'de' }),
+            signal: ac.signal,
+          },
+        );
+        if (!res.ok || !res.body) {
+          const detail = (await res.text().catch(() => '')).slice(0, 300);
+          req.log.error({ status: res.status, engine: 'elevenlabs', detail }, 'TTS fehlgeschlagen');
+          return reply.code(502).send({ error: 'tts_failed' });
+        }
+        const pcm = Readable.fromWeb(res.body as any);
+        const audio = Readable.from(
+          (async function* () {
+            yield wavStreamHeader(ELEVENLABS_RATE);
+            yield* pcm;
+          })(),
+        );
         return reply.header('Cache-Control', 'no-store').type('audio/wav').send(audio);
       }
 
