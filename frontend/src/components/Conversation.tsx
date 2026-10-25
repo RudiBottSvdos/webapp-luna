@@ -13,7 +13,7 @@ export function Conversation({ messages }: { messages: Message[] }) {
 
   return (
     <section className="conversation" aria-label="Gespräch" aria-live="polite">
-      {messages.length === 0 && <p className="empty">Hallo, ich bin Luna. Wie kann ich helfen?</p>}
+      {messages.length === 0 && <p className="empty">Hallo, ich bin F.R.I.D.A.Y. Wie kann ich helfen?</p>}
       {messages.map((m) => (
         <div key={m.id} className={`bubble bubble-${m.role}`}>
           {m.role === "assistant" ? <Markdown text={m.text} /> : <p>{m.text}</p>}

@@ -95,7 +95,7 @@ describe('Kopplung', () => {
     const cookie = `luna_device=${c.value}`;
 
     const s = await app.inject({ url: '/api/session', headers: { cookie } });
-    expect(s.json()).toEqual({ paired: true, name: 'Luna' });
+    expect(s.json()).toEqual({ paired: true, name: 'F.R.I.D.A.Y.' });
 
     // Neustart mit gleichem DATA_DIR
     await app.close();

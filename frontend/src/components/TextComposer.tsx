@@ -15,7 +15,7 @@ export function TextComposer({ onSend }: { onSend: (text: string) => void }) {
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="Oder hier tippen …"
-        aria-label="Nachricht an Luna"
+        aria-label="Nachricht an F.R.I.D.A.Y."
         enterKeyHint="send"
         autoComplete="off"
       />

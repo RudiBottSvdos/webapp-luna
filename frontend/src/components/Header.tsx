@@ -11,7 +11,7 @@ export function Header({ speakerOn, onToggleSpeaker, onNewConversation }: Props)
         <svg viewBox="0 0 24 24" className="logo" aria-hidden="true">
           <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z" />
         </svg>
-        Luna
+        F.R.I.D.A.Y.
       </h1>
       <div className="header-actions">
         <button

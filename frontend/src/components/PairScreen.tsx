@@ -32,7 +32,7 @@ export function PairScreen({ onPair }: { onPair: (pin: string) => Promise<boolea
 
   return (
     <main className="pair">
-      <h1>Luna</h1>
+      <h1>F.R.I.D.A.Y.</h1>
       <p className="pair-hint">Dieses Gerät koppeln: bitte PIN eingeben.</p>
       <div className="pin-display" aria-label={`PIN, ${pin.length} Ziffern eingegeben`}>
         {pin ? "•".repeat(pin.length) : " "}

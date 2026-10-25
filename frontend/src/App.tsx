@@ -8,7 +8,7 @@ import { useLuna } from "./hooks/useLuna";
 export function App() {
   const luna = useLuna();
 
-  if (luna.session === "loading") return <main className="center">Luna startet …</main>;
+  if (luna.session === "loading") return <main className="center">F.R.I.D.A.Y. startet …</main>;
   if (luna.session === "offline") {
     return (
       <main className="center">

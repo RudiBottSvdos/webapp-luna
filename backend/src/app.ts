@@ -11,6 +11,7 @@ import { parseHermesEvents } from './hermes/sse.js';
 import { chunkForSpeech } from './speech/chunks.js';
 import { cleanForSpeech } from './speech/clean.js';
 import { speakNumbers } from './speech/numbers.js';
+import { speakNames } from './speech/names.js';
 import { wavStreamHeader } from './speech/wav.js';
 import { SentenceSplitter } from './speech/sentences.js';
 
@@ -123,7 +124,7 @@ export async function buildApp(config: Config, deps: AppDeps): Promise<FastifyIn
 
   app.get('/api/session', async (req, reply) => {
     if (!isPaired(req)) return reply.code(401).send({ error: 'unpaired' });
-    return { paired: true, name: 'Luna' };
+    return { paired: true, name: 'F.R.I.D.A.Y.' };
   });
 
   // --- geschützt ---
@@ -267,7 +268,7 @@ export async function buildApp(config: Config, deps: AppDeps): Promise<FastifyIn
     reply.raw.on('close', () => {
       if (!reply.raw.writableEnded) ac.abort();
     });
-    const text = speakNumbers(body.data.text); // Pocket TTS spricht keine Ziffern
+    const text = speakNumbers(speakNames(body.data.text)); // Pocket TTS spricht keine Ziffern; Namen nicht buchstabieren
     try {
       if (config.ttsEngine === 'pocket') {
         // Pocket TTS streamt WAV schneller als Echtzeit; durchreichen, damit das Frontend

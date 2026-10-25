@@ -6,11 +6,11 @@ Oct 24, 2026 · @Niklas
 
 Ein fest montiertes Tablet am Schreibtisch wird zur Sprach- und Touch-Oberfläche für Hermes: Knopf drücken, sprechen, Antwort lesen und hören. Mikrofon, Lautsprecher und Display bringt das Tablet mit, auf dem Server läuft nur eine Web-App.
 
-**Name: Luna.** Die KI heißt Luna. Name und Sprechweise bekommt sie in Hermes über die Datei `~/.hermes/SOUL.md`, die als Identität ganz oben im Systemprompt steht. Damit heißt sie überall Luna: auf dem Tablet, in Telegram und im Terminal. Die Webapp zeigt den Namen im Kopfbereich, ein späteres Wake Word lautet „Hey Luna“.
+**Name: F.R.I.D.A.Y.** Die KI heißt F.R.I.D.A.Y. (gesprochen „Friday“). Name und Sprechweise bekommt sie in Hermes über die Datei `~/.hermes/SOUL.md`, die als Identität ganz oben im Systemprompt steht. Damit heißt sie überall F.R.I.D.A.Y.: auf dem Tablet, in Telegram und im Terminal. Die Webapp zeigt den Namen im Kopfbereich, ein späteres Wake Word lautet „Hey F.R.I.D.A.Y.“.
 
 | Funktion | MVP | Später |
 | --- | --- | --- |
-| Name „Luna“ im Kopfbereich | ja |  |
+| Name „F.R.I.D.A.Y.“ im Kopfbereich | ja |  |
 | Sprechknopf (gedrückt halten oder antippen) | ja |  |
 | Erkannter Text wird angezeigt | ja |  |
 | Antwort als Text, live mitlaufend | ja |  |
@@ -19,11 +19,11 @@ Ein fest montiertes Tablet am Schreibtisch wird zur Sprach- und Touch-Oberfläch
 | Laufende Ausgabe per Tipp auf den Sprechknopf stoppen | ja |  |
 | Texteingabe als Alternative | ja |  |
 | „Neues Gespräch“-Knopf | ja |  |
-| Anzeige, welche Werkzeuge Luna gerade nutzt |  | ja |
+| Anzeige, welche Werkzeuge F.R.I.D.A.Y. gerade nutzt |  | ja |
 | Status-Leiste: KI online, GPU, Hermes erreichbar |  | ja |
 | Home-Assistant-Kacheln (Licht, Szenen) |  | ja |
 | Status von Claude-Code-Aufträgen |  | ja |
-| Wake Word „Hey Luna“ statt Knopf |  | optional |
+| Wake Word „Hey Friday“ statt Knopf |  | optional |
 
 Die Web-App ist bewusst schlank: Sie spricht nur mit Hermes, Spracherkennung und Sprachausgabe. Logik und Gedächtnis bleiben in Hermes.
 
@@ -108,7 +108,7 @@ Zuerst wird die Infrastruktur vorbereitet (siehe Prompt-Dokument), danach baut C
 
 - [ ] VM homeassistant (HAOS) anlegen
 - [ ] VM dev und VM web anlegen
-- [ ] Hermes-API-Server aktivieren, Firewall für Port 8642, Luna-Persönlichkeit in \~/.hermes/SOUL.md anlegen
+- [ ] Hermes-API-Server aktivieren, Firewall für Port 8642, F.R.I.D.A.Y.-Persönlichkeit in \~/.hermes/SOUL.md anlegen
 - [ ] speaches in der VM web starten, deutsches Whisper-Modell und Piper-Stimme laden, testen
 - [ ] DNS-Eintrag, Caddy-Zertifikat, FritzBox-Rebind-Ausnahme
 
@@ -130,7 +130,7 @@ Zuerst wird die Infrastruktur vorbereitet (siehe Prompt-Dokument), danach baut C
 
 - [ ] Home-Assistant-Kacheln über die HA-REST-API
 - [ ] Status von Claude-Code-Aufträgen
-- [ ] Optional: Wake Word „Hey Luna“ (eigenes openWakeWord-Modell im Browser)
+- [ ] Optional: Wake Word „Hey Friday“ (eigenes openWakeWord-Modell im Browser)
 
 **Offene Fragen**
 

@@ -1,6 +1,6 @@
-# Luna – Sprach-Webapp für Hermes
+# F.R.I.D.A.Y. – Sprach-Webapp für Hermes
 
-Luna ist eine schlanke Web-App für ein fest montiertes Kiosk-Tablet: Knopf drücken, sprechen, Antwort lesen und hören. Die App spricht ausschließlich mit [Hermes](https://hermes-agent.nousresearch.com/) (Nous Research); Logik und Gedächtnis bleiben in Hermes. Das vollständige Konzept steht in [docs/KONZEPT.md](docs/KONZEPT.md).
+F.R.I.D.A.Y. ist eine schlanke Web-App für ein fest montiertes Kiosk-Tablet: Knopf drücken, sprechen, Antwort lesen und hören. Die App spricht ausschließlich mit [Hermes](https://hermes-agent.nousresearch.com/) (Nous Research); Logik und Gedächtnis bleiben in Hermes. Das vollständige Konzept steht in [docs/KONZEPT.md](docs/KONZEPT.md).
 
 ## Architektur
 
@@ -21,7 +21,7 @@ Tablet (PWA) ──HTTPS──> Caddy ──/api/*──> Backend (Fastify) ─�
 | --- | --- |
 | `GET /health` | Lebenszeichen, ohne Anmeldung |
 | `POST /pair` | `{pin}` → setzt Cookie `luna_device` (signiert, httpOnly, Secure, SameSite=Strict, 1 Jahr). Max. 5 Versuche / 15 min / IP |
-| `GET /session` | `{paired:true,name:"Luna"}` oder 401 `{error:"unpaired"}` |
+| `GET /session` | `{paired:true,name:"F.R.I.D.A.Y."}` oder 401 `{error:"unpaired"}` |
 | `POST /transcribe` | multipart, Feld `audio` (webm/opus, max. 10 MB) → `{text}` |
 | `POST /chat` | `{text, previousResponseId?}` → SSE: `delta`, `sentence`, `done`, `error` |
 | `POST /tts` | `{text}` (max. 1000 Zeichen) → Audio |
@@ -87,16 +87,16 @@ API-Server aktivieren (z. B. in `~/.hermes/.env`) und das Gateway neu starten:
 
 ```
 API_SERVER_ENABLED=true
-API_SERVER_KEY=<langer zufälliger Schlüssel>   # = HERMES_API_KEY in Lunas .env
+API_SERVER_KEY=<langer zufälliger Schlüssel>   # = HERMES_API_KEY in der .env der Webapp
 API_SERVER_HOST=0.0.0.0
 # Port: Standard 8642
 ```
 
-Port 8642 per Firewall nur für die IP der VM web öffnen (`ufw allow from <IP-VM-web> to any port 8642`). Name und Sprechweise „Luna“ stehen in `~/.hermes/SOUL.md`. Hinweis: Im API-Modus fehlen Hermes `clarify` und `text_to_speech`; die Sprachausgabe übernimmt speaches.
+Port 8642 per Firewall nur für die IP der VM web öffnen (`ufw allow from <IP-VM-web> to any port 8642`). Name und Sprechweise „F.R.I.D.A.Y.“ stehen in `~/.hermes/SOUL.md`. Hinweis: Im API-Modus fehlen Hermes `clarify` und `text_to_speech`; die Sprachausgabe übernimmt speaches.
 
 ### Geräte koppeln
 
-Beim ersten Aufruf der App fragt Luna nach der PIN (`PAIRING_PIN`). Nach korrekter Eingabe erhält das Tablet ein langlebiges Cookie (1 Jahr); die gekoppelten Geräte (nur Hashes) liegen im Volume unter `DATA_DIR/devices.json`. Zum Entziehen aller Geräte: die Datei löschen und Backend neu starten; zum Ändern der Cookie-Signatur `COOKIE_SECRET` ersetzen.
+Beim ersten Aufruf der App fragt F.R.I.D.A.Y. nach der PIN (`PAIRING_PIN`). Nach korrekter Eingabe erhält das Tablet ein langlebiges Cookie (1 Jahr); die gekoppelten Geräte (nur Hashes) liegen im Volume unter `DATA_DIR/devices.json`. Zum Entziehen aller Geräte: die Datei löschen und Backend neu starten; zum Ändern der Cookie-Signatur `COOKIE_SECRET` ersetzen.
 
 ### FritzBox: DNS-Rebind-Schutz
 

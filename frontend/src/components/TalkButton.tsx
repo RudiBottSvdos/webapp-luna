@@ -5,8 +5,8 @@ const LABELS: Record<Status, string> = {
   idle: "Zum Sprechen halten oder tippen",
   recording: "Ich höre zu … loslassen oder erneut tippen",
   transcribing: "Verstehe …",
-  thinking: "Luna denkt nach …",
-  speaking: "Luna spricht – tippen zum Unterbrechen",
+  thinking: "F.R.I.D.A.Y. denkt nach …",
+  speaking: "F.R.I.D.A.Y. spricht – tippen zum Unterbrechen",
 };
 
 interface Props {

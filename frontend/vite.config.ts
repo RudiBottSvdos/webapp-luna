@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["icon.svg"],
       manifest: {
-        name: "Luna",
-        short_name: "Luna",
-        description: "Luna – Sprachassistent",
+        name: "F.R.I.D.A.Y.",
+        short_name: "F.R.I.D.A.Y.",
+        description: "F.R.I.D.A.Y. – Sprachassistentin",
         lang: "de",
         display: "standalone",
         display_override: ["fullscreen", "standalone"],
