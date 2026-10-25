@@ -28,6 +28,8 @@ export default defineConfig({
       },
       workbox: {
         navigateFallbackDenylist: [/^\/api\//],
+        // Weckwort-Modelle nicht vorab in den Service-Worker-Cache (die WASM-Laufzeit ist ohnehin nicht im Muster)
+        globIgnores: ["wakeword/**"],
         globPatterns: ["**/*.{js,css,html,svg,png}"],
       },
     }),

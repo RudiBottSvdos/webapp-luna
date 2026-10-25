@@ -6,7 +6,7 @@ Oct 24, 2026 · @Niklas
 
 Ein fest montiertes Tablet am Schreibtisch wird zur Sprach- und Touch-Oberfläche für Hermes: Knopf drücken, sprechen, Antwort lesen und hören. Mikrofon, Lautsprecher und Display bringt das Tablet mit, auf dem Server läuft nur eine Web-App.
 
-**Name: F.R.I.D.A.Y.** Die KI heißt F.R.I.D.A.Y. (gesprochen „Friday“). Name und Sprechweise bekommt sie in Hermes über die Datei `~/.hermes/SOUL.md`, die als Identität ganz oben im Systemprompt steht. Damit heißt sie überall F.R.I.D.A.Y.: auf dem Tablet, in Telegram und im Terminal. Die Webapp zeigt den Namen im Kopfbereich, ein späteres Wake Word lautet „Hey F.R.I.D.A.Y.“.
+**Name: F.R.I.D.A.Y.** Die KI heißt F.R.I.D.A.Y. (gesprochen „Friday“). Name und Sprechweise bekommt sie in Hermes über die Datei `~/.hermes/SOUL.md`, die als Identität ganz oben im Systemprompt steht. Damit heißt sie überall F.R.I.D.A.Y.: auf dem Tablet und im Terminal. Die Webapp zeigt den Namen im Kopfbereich, das Weckwort lautet „Friday“.
 
 | Funktion | MVP | Später |
 | --- | --- | --- |
@@ -23,7 +23,7 @@ Ein fest montiertes Tablet am Schreibtisch wird zur Sprach- und Touch-Oberfläch
 | Status-Leiste: KI online, GPU, Hermes erreichbar |  | ja |
 | Home-Assistant-Kacheln (Licht, Szenen) |  | ja |
 | Status von Claude-Code-Aufträgen |  | ja |
-| Wake Word „Hey Friday“ statt Knopf |  | optional |
+| Weckwort „Friday“ statt Knopf (im Browser, abschaltbar) | ja |  |
 
 Die Web-App ist bewusst schlank: Sie spricht nur mit Hermes, Spracherkennung und Sprachausgabe. Logik und Gedächtnis bleiben in Hermes.
 
@@ -130,7 +130,7 @@ Zuerst wird die Infrastruktur vorbereitet (siehe Prompt-Dokument), danach baut C
 
 - [ ] Home-Assistant-Kacheln über die HA-REST-API
 - [ ] Status von Claude-Code-Aufträgen
-- [ ] Optional: Wake Word „Hey Friday“ (eigenes openWakeWord-Modell im Browser)
+- [x] Weckwort „Friday“ (eigenes openWakeWord-Modell im Browser)
 
 **Offene Fragen**
 

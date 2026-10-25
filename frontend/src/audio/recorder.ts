@@ -43,6 +43,11 @@ export class Recorder {
     return this.stream;
   }
 
+  /** Mikrofon-Stream (einmal angefordert; die Weckwort-Erkennung hört auf demselben mit). */
+  acquireStream(): Promise<MediaStream> {
+    return this.ensureStream();
+  }
+
   async start(): Promise<void> {
     if (this.recording) return;
     const stream = await this.ensureStream();

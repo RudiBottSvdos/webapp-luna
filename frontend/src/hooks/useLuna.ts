@@ -3,6 +3,8 @@ import * as api from "../api/client";
 import { PlaybackQueue } from "../audio/playbackQueue";
 import { MicDeniedError, MicUnavailableError, Recorder } from "../audio/recorder";
 import { WebAudioPlayer } from "../audio/webAudioPlayer";
+import { Endpointer } from "../wakeword/endpointer";
+import { WakeListener } from "../wakeword/listener";
 
 export interface Message {
   id: number;
@@ -14,17 +16,27 @@ export interface Message {
 export type Phase = "idle" | "recording" | "transcribing" | "thinking";
 export type Status = Phase | "speaking";
 export type SessionState = "loading" | "paired" | "unpaired" | "offline";
+export type WakeState = "off" | "loading" | "listening" | "needs-tap" | "error";
 
 const TAP_MS = 300;
 const MIN_RECORDING_MS = 400;
 const MAX_RECORDING_MS = 60_000;
 const SPEAKER_KEY = "luna.speaker";
+const WAKE_KEY = "luna.wake";
 
 function loadSpeaker(): boolean {
   try {
     return localStorage.getItem(SPEAKER_KEY) !== "off";
   } catch {
     return true;
+  }
+}
+
+function loadWake(): boolean {
+  try {
+    return localStorage.getItem(WAKE_KEY) === "on";
+  } catch {
+    return false;
   }
 }
 
@@ -41,6 +53,8 @@ export function useLuna() {
   const [speaking, setSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [speakerOn, setSpeakerOnState] = useState(loadSpeaker);
+  const [wakeOn, setWakeOnState] = useState(loadWake);
+  const [wakeState, setWakeState] = useState<WakeState>("off");
 
   const speakerRef = useRef(speakerOn);
   const phaseRef = useRef<Phase>("idle");
@@ -53,6 +67,10 @@ export function useLuna() {
   const player = useRef(new WebAudioPlayer());
   const press = useRef({ active: false, at: 0, releasedAsHold: false, starting: false, startCancelled: false });
   const maxTimer = useRef<number | null>(null);
+  // Weckwort: Listener, Sprechende-Erkennung der laufenden freihändigen Aufnahme, letztes Grundrauschen
+  const wakeListener = useRef<WakeListener | null>(null);
+  const handsFree = useRef<Endpointer | null>(null);
+  const noiseFloor = useRef(0);
 
   const setPhaseBoth = useCallback((p: Phase) => {
     phaseRef.current = p;
@@ -159,6 +177,7 @@ export function useLuna() {
       if (!t) return;
       setError(null);
       stopOutput();
+      handsFree.current = null;
       if (recorder.current.recording) void recorder.current.stop();
       clearMaxTimer();
       setMessages((m) => [...m, { id: nextId.current++, role: "user", text: t }]);
@@ -168,6 +187,7 @@ export function useLuna() {
   );
 
   const finishRecording = useCallback(async () => {
+    handsFree.current = null;
     clearMaxTimer();
     const rec = await recorder.current.stop();
     if (!rec || rec.durationMs < MIN_RECORDING_MS || rec.blob.size === 0) {
@@ -254,6 +274,97 @@ export function useLuna() {
     // else: short tap -> keep recording until the next tap
   }, [finishRecording]);
 
+  // --- Weckwort "Friday": Aufnahme ohne Knopf, Ende über die Sprechpause
+  const startHandsFree = useCallback(() => {
+    if (phaseRef.current !== "idle") return;
+    stopOutput();
+    wakeListener.current?.beep();
+    handsFree.current = new Endpointer(noiseFloor.current);
+    void beginRecording();
+  }, [beginRecording, stopOutput]);
+
+  const onLevel = useCallback(
+    (level: number, floor: number) => {
+      noiseFloor.current = floor;
+      const ep = handsFree.current;
+      if (!ep || phaseRef.current !== "recording" || press.current.starting) return;
+      const r = ep.feed(level);
+      if (r === "end") void finishRecording();
+      else if (r === "no-speech") {
+        handsFree.current = null;
+        clearMaxTimer();
+        void recorder.current.stop();
+        setPhaseBoth("idle");
+      }
+    },
+    [finishRecording, setPhaseBoth],
+  );
+
+  // Der Listener lebt länger als ein Render; er ruft immer die aktuellen Callbacks.
+  const wakeHandlers = useRef({ startHandsFree, onLevel });
+  wakeHandlers.current = { startHandsFree, onLevel };
+
+  useEffect(() => {
+    if (!wakeOn || session !== "paired") return;
+    let cancelled = false;
+    const listener = new WakeListener({
+      onWake: () => wakeHandlers.current.startHandsFree(),
+      onLevel: (level, floor) => wakeHandlers.current.onLevel(level, floor),
+    });
+    setWakeState("loading");
+    void (async () => {
+      try {
+        await listener.start(await recorder.current.acquireStream());
+        if (cancelled) return listener.stop();
+        wakeListener.current = listener;
+        setWakeState(listener.suspended ? "needs-tap" : "listening");
+      } catch (e) {
+        listener.stop();
+        if (cancelled) return;
+        console.error("Weckwort", e);
+        setWakeState("error");
+        setError(
+          e instanceof MicDeniedError || e instanceof MicUnavailableError
+            ? e.message
+            : "Die Erkennung von „Friday“ konnte nicht starten.",
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+      listener.stop();
+      wakeListener.current = null;
+      handsFree.current = null;
+      setWakeState("off");
+    };
+  }, [wakeOn, session]);
+
+  // Nach einem Neuladen hält der Browser den Audio-Kontext an, bis einmal getippt wurde.
+  useEffect(() => {
+    if (wakeState !== "needs-tap") return;
+    const wake = () =>
+      void wakeListener.current
+        ?.resume()
+        .then(() => setWakeState(wakeListener.current?.suspended ? "needs-tap" : "listening"));
+    window.addEventListener("pointerdown", wake, { capture: true });
+    return () => window.removeEventListener("pointerdown", wake, { capture: true });
+  }, [wakeState]);
+
+  // Nur im Leerlauf scharf: nicht während Aufnahme, Nachdenken oder eigener Sprachausgabe.
+  useEffect(() => {
+    wakeListener.current?.setArmed(wakeState === "listening" && phase === "idle" && !speaking);
+  }, [wakeState, phase, speaking]);
+
+  const setWakeOn = useCallback((on: boolean) => {
+    player.current.unlock();
+    setWakeOnState(on);
+    try {
+      localStorage.setItem(WAKE_KEY, on ? "on" : "off");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   const setSpeakerOn = useCallback((on: boolean) => {
     speakerRef.current = on;
     setSpeakerOnState(on);
@@ -267,6 +378,7 @@ export function useLuna() {
 
   const newConversation = useCallback(() => {
     stopOutput();
+    handsFree.current = null;
     if (recorder.current.recording) void recorder.current.stop();
     clearMaxTimer();
     responseId.current = null;
@@ -303,6 +415,9 @@ export function useLuna() {
     dismissError: () => setError(null),
     speakerOn,
     setSpeakerOn,
+    wakeOn,
+    setWakeOn,
+    wakeState,
     pressDown,
     pressUp,
     submitText,

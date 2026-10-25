@@ -1,5 +1,5 @@
 import type { PointerEvent } from "react";
-import type { Status } from "../hooks/useLuna";
+import type { Status, WakeState } from "../hooks/useLuna";
 
 const LABELS: Record<Status, string> = {
   idle: "Zum Sprechen halten oder tippen",
@@ -9,13 +9,19 @@ const LABELS: Record<Status, string> = {
   speaking: "F.R.I.D.A.Y. spricht – tippen zum Unterbrechen",
 };
 
+const WAKE_IDLE: Partial<Record<WakeState, string>> = {
+  listening: "Sag „Friday“ – oder Knopf halten bzw. tippen",
+  "needs-tap": "Einmal tippen, dann höre ich auf „Friday“",
+};
+
 interface Props {
   status: Status;
+  wake?: WakeState;
   onDown: () => void;
   onUp: () => void;
 }
 
-export function TalkButton({ status, onDown, onUp }: Props) {
+export function TalkButton({ status, wake = "off", onDown, onUp }: Props) {
   const down = (e: PointerEvent<HTMLButtonElement>) => {
     e.preventDefault();
     try {
@@ -58,7 +64,7 @@ export function TalkButton({ status, onDown, onUp }: Props) {
         </svg>
       </button>
       <p className="talk-label" role="status" aria-live="polite">
-        {LABELS[status]}
+        {(status === "idle" && WAKE_IDLE[wake]) || LABELS[status]}
       </p>
     </div>
   );

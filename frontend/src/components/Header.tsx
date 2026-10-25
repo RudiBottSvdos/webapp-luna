@@ -1,10 +1,23 @@
+import type { WakeState } from "../hooks/useLuna";
+
 interface Props {
+  wakeOn: boolean;
+  wakeState: WakeState;
+  onToggleWake: () => void;
   speakerOn: boolean;
   onToggleSpeaker: () => void;
   onNewConversation: () => void;
 }
 
-export function Header({ speakerOn, onToggleSpeaker, onNewConversation }: Props) {
+const WAKE_LABEL: Record<WakeState, string> = {
+  off: "„Friday“ aus",
+  loading: "„Friday“ startet …",
+  listening: "„Friday“ an",
+  "needs-tap": "„Friday“ an",
+  error: "„Friday“ gestört",
+};
+
+export function Header({ wakeOn, wakeState, onToggleWake, speakerOn, onToggleSpeaker, onNewConversation }: Props) {
   return (
     <header className="header">
       <h1>
@@ -15,6 +28,12 @@ export function Header({ speakerOn, onToggleSpeaker, onNewConversation }: Props)
         F.R.I.D.A.Y.
       </h1>
       <div className="header-actions">
+        <button type="button" className={`chip ${wakeOn ? "chip-on" : ""}`} aria-pressed={wakeOn} onClick={onToggleWake}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4" className="stroke" />
+          </svg>
+          {wakeOn ? WAKE_LABEL[wakeState] : WAKE_LABEL.off}
+        </button>
         <button
           type="button"
           className={`chip ${speakerOn ? "chip-on" : ""}`}

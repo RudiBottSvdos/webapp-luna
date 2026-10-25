@@ -94,6 +94,27 @@ API_SERVER_HOST=0.0.0.0
 
 Port 8642 per Firewall nur für die IP der VM web öffnen (`ufw allow from <IP-VM-web> to any port 8642`). Name und Sprechweise „F.R.I.D.A.Y.“ stehen in `~/.hermes/SOUL.md`. Hinweis: Im API-Modus fehlen Hermes `clarify` und `text_to_speech`; die Sprachausgabe übernimmt speaches.
 
+### Weckwort „Friday“
+
+Schalter „Friday“ in der Kopfzeile: Das Tablet hört dann dauerhaft auf das Wort „Friday“, nach dem
+Wort kommt ein Piepton, die Aufnahme endet nach ca. 1,2 s Sprechpause (max. 15 s). Die Erkennung
+läuft komplett im Browser ([openWakeWord](https://github.com/dscripka/openWakeWord) über
+onnxruntime-web, `frontend/src/wakeword/`); vor dem Weckwort verlässt kein Ton das Gerät. Während
+F.R.I.D.A.Y. nachdenkt oder spricht, ist die Erkennung pausiert. Nach einem Neuladen braucht der
+Browser einmal Tippen, bevor er Audio verarbeitet.
+
+Modelle in `frontend/public/wakeword/` (SHA-256):
+
+| Datei | Herkunft | SHA-256 |
+|---|---|---|
+| `melspectrogram.onnx` | openWakeWord-Release v0.5.1 | `ba2b0e0f8b7b875369a2c89cb13360ff53bac436f2895cced9f479fa65eb176f` |
+| `embedding_model.onnx` | openWakeWord-Release v0.5.1 | `70d164290c1d095d1d4ee149bc5e00543250a7316b59f31d056cff7bd3075c1f` |
+| `friday.onnx` | selbst trainiert (openWakeWord-Trainingspipeline, synthetische Stimmen) | siehe `sha256sum` |
+
+Neues Modell: mit der offiziellen openWakeWord-Trainingspipeline trainieren (Notebook
+`automatic_model_training.ipynb`), `friday.onnx` ersetzen, neu bauen. Die Schwelle (0,5) steht in
+`frontend/src/wakeword/listener.ts`.
+
 ### Geräte koppeln
 
 Beim ersten Aufruf der App fragt F.R.I.D.A.Y. nach der PIN (`PAIRING_PIN`). Nach korrekter Eingabe erhält das Tablet ein langlebiges Cookie (1 Jahr); die gekoppelten Geräte (nur Hashes) liegen im Volume unter `DATA_DIR/devices.json`. Zum Entziehen aller Geräte: die Datei löschen und Backend neu starten; zum Ändern der Cookie-Signatur `COOKIE_SECRET` ersetzen.

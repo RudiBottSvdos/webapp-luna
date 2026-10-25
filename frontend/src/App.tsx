@@ -24,6 +24,9 @@ export function App() {
   return (
     <div className="app">
       <Header
+        wakeOn={luna.wakeOn}
+        wakeState={luna.wakeState}
+        onToggleWake={() => luna.setWakeOn(!luna.wakeOn)}
         speakerOn={luna.speakerOn}
         onToggleSpeaker={() => luna.setSpeakerOn(!luna.speakerOn)}
         onNewConversation={luna.newConversation}
@@ -41,7 +44,7 @@ export function App() {
         <TextComposer onSend={luna.submitText} />
       </div>
       <div className="dock">
-        <TalkButton status={luna.status} onDown={luna.pressDown} onUp={luna.pressUp} />
+        <TalkButton status={luna.status} wake={luna.wakeOn ? luna.wakeState : "off"} onDown={luna.pressDown} onUp={luna.pressUp} />
       </div>
     </div>
   );
