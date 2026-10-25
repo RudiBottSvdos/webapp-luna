@@ -90,6 +90,9 @@ h1 {
   height: 1.4em;
   fill: var(--accent);
 }
+.logo-ring {
+  stroke: var(--accent-2);
+}
 .header-actions {
   display: flex;
   gap: 10px;

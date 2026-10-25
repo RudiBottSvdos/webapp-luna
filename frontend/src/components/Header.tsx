@@ -9,7 +9,8 @@ export function Header({ speakerOn, onToggleSpeaker, onNewConversation }: Props)
     <header className="header">
       <h1>
         <svg viewBox="0 0 24 24" className="logo" aria-hidden="true">
-          <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z" />
+          <circle cx="12" cy="12" r="10.2" fill="none" className="logo-ring" strokeWidth="1.8" strokeDasharray="3.1 0.9" />
+          <path d="M9.19 7.41h5.81v1.59h-4.13v2.16h3.38v1.5h-3.38v3.94H9.19z" />
         </svg>
         F.R.I.D.A.Y.
       </h1>
